@@ -1,9 +1,4 @@
-import {
-  CalendarPlus,
-  XCircle,
-  Sparkles,
-  Bell,
-} from "lucide-react";
+import { CalendarPlus, XCircle, Sparkles, Bell } from "lucide-react";
 
 // 🔔 SIMULACIÓN DE BD
 const notifications = [
@@ -52,25 +47,16 @@ const notifications = [
 ];
 
 export default function Notifications() {
-  const MAX_VISIBLE = 5; // 👈 resumen diario
+  const MAX_VISIBLE = 5;
 
   return (
-    <section
-      className="
-        bg-barber-white
-        rounded-2xl
-        border border-barber-gray/30
-        p-6
-        space-y-6
-      "
-    >
+    <section className="bg-barber-white rounded-2xl border border-barber-gray/30 p-6 space-y-6">
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-barber-black flex items-center gap-2">
           <Bell className="w-5 h-5 text-barber-gold" />
           Resumen del día
         </h2>
-
         <span className="text-sm text-barber-gray">Hoy</span>
       </div>
 
@@ -82,23 +68,15 @@ export default function Notifications() {
       </div>
 
       {/* NOTIFICATIONS */}
-      {notifications.length > 0 ? (
-        <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
-          {notifications.slice(0, MAX_VISIBLE).map((n) => (
-            <NotificationItem key={n.id} data={n} />
-          ))}
-        </div>
-      ) : (
-        // 🫙 ESTADO VACÍO
-        <div className="text-center py-10 text-barber-gray">
-          <Bell className="w-8 h-8 mx-auto mb-2 opacity-40" />
-          <p>No hay notificaciones por ahora</p>
-        </div>
-      )}
+      <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
+        {notifications.slice(0, MAX_VISIBLE).map((n) => (
+          <NotificationItem key={n.id} data={n} />
+        ))}
+      </div>
 
       {/* VER MÁS */}
       {notifications.length > MAX_VISIBLE && (
-        <button className="text-sm text-barber-gold font-medium hover:underline">
+        <button className="text-sm text-barber-gold font-semibold hover:underline">
           Ver todas las notificaciones
         </button>
       )}
@@ -108,9 +86,18 @@ export default function Notifications() {
 
 function NotificationItem({ data }) {
   const styles = {
-    new: "border-barber-info bg-barber-info/10 text-barber-info",
-    cancel: "border-barber-wine bg-barber-wine/10 text-barber-wine",
-    update: "border-barber-gold bg-barber-gold/10 text-barber-gold",
+    new: `
+      border-2 border-barber-info
+      bg-barber-info/20
+    `,
+    cancel: `
+      border-2 border-barber-wine
+      bg-barber-wine/20
+    `,
+    update: `
+      border-2 border-barber-gold
+      bg-barber-gold/25
+    `,
   };
 
   const icons = {
@@ -127,20 +114,19 @@ function NotificationItem({ data }) {
         flex items-start gap-4
         p-4
         rounded-xl
-        border
         transition
         ${styles[data.type]}
-        ${!data.read ? "ring-2 ring-barber-gold/40" : "opacity-80"}
+        ${!data.read ? "ring-2 ring-barber-gold/40" : "opacity-90"}
       `}
     >
       {/* ICON */}
-      <div className="mt-0.5">
-        <Icon className="w-5 h-5" />
-      </div>
+      <Icon className="w-6 h-6 stroke-[2.5]" />
 
       {/* CONTENT */}
       <div className="flex-1">
-        <p className="text-sm text-barber-black">{data.text}</p>
+        <p className="text-sm font-medium text-barber-black">
+          {data.text}
+        </p>
         <span className="text-xs text-barber-gray">{data.time}</span>
       </div>
     </div>
@@ -149,14 +135,7 @@ function NotificationItem({ data }) {
 
 function SummaryCard({ title, value }) {
   return (
-    <div
-      className="
-        bg-barber-light
-        rounded-xl
-        p-4
-        border border-barber-gray/30
-      "
-    >
+    <div className="bg-barber-light rounded-xl p-4 border-2 border-barber-gold/40">
       <p className="text-xs text-barber-gray">{title}</p>
       <p className="text-2xl font-bold text-barber-gold mt-1">{value}</p>
     </div>

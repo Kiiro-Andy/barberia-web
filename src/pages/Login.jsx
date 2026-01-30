@@ -1,21 +1,126 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import Swal from "sweetalert2";
 
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
+
+    const handleForgotPassword = () => {
+    Swal.fire({
+      title: "Recuperar contraseña",
+      text: "Se enviará un enlace de recuperación a tu correo electrónico.",
+      icon: "info",
+      confirmButtonText: "Entendido",
+      confirmButtonColor: "#C0A060",
+    });
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-barber-light">
-      <div className="bg-barber-white w-full max-w-sm rounded-2xl p-8 shadow-xl border border-barber-gray/30">
+    <div
+      className="
+        min-h-screen
+        flex
+        items-center
+        justify-center
+        relative
+        overflow-hidden
+        bg-gradient-to-br
+        from-barber-light
+        via-white
+        to-barber-light
+      "
+    >
+{/* BACKGROUND GRID DE CORTES */}
+<div className="absolute inset-0 z-0 overflow-hidden">
+  <div
+    className="
+      absolute
+      inset-0
+      grid
+      grid-cols-2
+      md:grid-cols-3
+      lg:grid-cols-4
+      gap-8
+      p-12
+      opacity-40
+    "
+  >
+    {[
+      "cut1.jpg",
+      "cut2.jpg",
+      "cut3.jpg",
+      "cut4.jpg",
+      "cut5.jpg",
+      "cut1.jpg",
+      "cut2.jpg",
+      "cut3.jpg",
+    ].map((img, i) => (
+      <img
+        key={i}
+        src={`/public/${img}`}
+        className="
+          w-full
+          h-full
+          object-cover
+          rounded-2xl
+          shadow-xl
+          transition-transform
+        "
+      />
+    ))}
+  </div>
 
+  {/* OVERLAY SUAVE */}
+  <div className="absolute inset-0 bg-gradient-to-br from-barber-light/60 via-white/70 to-barber-light/60" />
+</div>
+
+
+
+
+
+      {/* BLOBS DECORATIVOS */}
+      <div className="absolute -top-24 -left-24 w-96 h-96 bg-barber-gold/25 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute top-1/3 -right-32 w-96 h-96 bg-barber-info/20 rounded-full blur-3xl animate-pulse delay-700" />
+      <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-barber-wine/15 rounded-full blur-3xl animate-pulse delay-1000" />
+
+      {/* CARD LOGIN */}
+      <div
+        className="
+          relative
+          z-10
+          bg-barber-white
+          w-full
+          max-w-md
+          rounded-2xl
+          p-10
+          shadow-2xl
+          border
+          border-barber-gray/30
+          animate-fadeIn
+        "
+      >
         {/* LOGO / TITLE */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-extrabold text-barber-gold">
+        <div className="mb-10 text-center">
+          <img
+            src="/public/Barberlogo1.png"
+            alt="Barber Logo"
+            className="
+              h-24
+              mx-auto
+              mb-4
+              object-contain
+              drop-shadow-lg
+            "
+          />
+
+          <h1 className="text-4xl font-extrabold text-barber-gold tracking-wide">
             Barber Admin
           </h1>
-          <p className="text-sm text-barber-gray mt-1">
+
+          <p className="text-sm text-barber-gray mt-2">
             Panel de gestión
           </p>
         </div>
@@ -29,17 +134,7 @@ export default function Login() {
           <input
             type="email"
             placeholder="Correo electrónico"
-            className="
-              w-full
-              pl-10 pr-4 py-2.5
-              rounded-lg
-              border border-barber-gray/40
-              text-barber-black
-              focus:outline-none
-              focus:ring-2
-              focus:ring-barber-gold
-              transition
-            "
+            className="input pl-10"
           />
         </div>
 
@@ -53,17 +148,7 @@ export default function Login() {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Contraseña"
-            className="
-              w-full
-              pl-10 pr-12 py-2.5
-              rounded-lg
-              border border-barber-gray/40
-              text-barber-black
-              focus:outline-none
-              focus:ring-2
-              focus:ring-barber-gold
-              transition
-            "
+            className="input pl-10 pr-12"
           />
 
           <button
@@ -80,21 +165,31 @@ export default function Login() {
           </button>
         </div>
 
+         {/* RECORDAR / OLVIDÉ */}
+        <div className="flex items-center justify-between mb-6 text-sm">
+          <label className="flex items-center gap-2 text-barber-gray cursor-pointer">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="accent-barber-gold cursor-pointer"
+            />
+            Recordarme
+          </label>
+
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            className="text-barber-gold hover:underline font-medium"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
+
         {/* BUTTON */}
         <button
           onClick={() => navigate("/dashboard")}
-          className="
-            w-full
-            bg-barber-gold
-            text-barber-black
-            py-2.5
-            rounded-lg
-            font-semibold
-            hover:bg-barber-info
-            hover:text-white
-            active:scale-[0.97]
-            transition
-          "
+          className="btn-primary w-full"
         >
           Iniciar sesión
         </button>

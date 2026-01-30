@@ -1,7 +1,20 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
+import { Plus, Trash2 } from "lucide-react";
 
-const initialSchedule = [
+/* ======================
+   HELPERS
+====================== */
+const timeToMinutes = (time) => {
+  if (!time) return 0;
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+};
+
+/* ======================
+   BASE DATA
+====================== */
+const baseSchedule = [
   { day: "Lunes", enabled: true, from: "09:00", to: "18:00" },
   { day: "Martes", enabled: true, from: "09:00", to: "18:00" },
   { day: "Miércoles", enabled: true, from: "09:00", to: "18:00" },
@@ -11,118 +24,272 @@ const initialSchedule = [
   { day: "Domingo", enabled: false, from: "", to: "" },
 ];
 
-const timeOptions = [
-  "08:00", "08:30", "09:00", "09:30",
-  "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30",
-  "14:00", "14:30", "15:00", "15:30",
-  "16:00", "16:30", "17:00", "17:30",
-  "18:00", "18:30", "19:00", "19:30",
-  "20:00", "20:30", "21:00", "21:30",
-  "22:00"
-];
+const generateHours = () => {
+  const hours = [];
+  for (let h = 6; h <= 22; h++) {
+    ["00", "30"].forEach((m) => {
+      hours.push(`${String(h).padStart(2, "0")}:${m}`);
+    });
+  }
+  return hours;
+};
 
+const hours = generateHours();
 
 export default function Schedule() {
-  const [schedule, setSchedule] = useState(initialSchedule);
+  const [barbers, setBarbers] = useState([
+    { id: 1, name: "Carlos", schedule: structuredClone(baseSchedule) },
+    { id: 2, name: "Miguel", schedule: structuredClone(baseSchedule) },
+  ]);
 
-  const handleChange = (index, field, value) => {
-    const updated = [...schedule];
-    updated[index][field] = value;
-    setSchedule(updated);
+  const [activeBarberId, setActiveBarberId] = useState(1);
+  const activeBarber = barbers.find((b) => b.id === activeBarberId);
+
+  /* ======================
+     UPDATE DAY (VALIDADO)
+  ====================== */
+  const updateDay = (index, field, value) => {
+    setBarbers((prev) =>
+      prev.map((barber) => {
+        if (barber.id !== activeBarberId) return barber;
+
+        const updatedSchedule = barber.schedule.map((day, i) => {
+          if (i !== index) return day;
+
+          const updatedDay = { ...day, [field]: value };
+
+          if (
+            updatedDay.enabled &&
+            updatedDay.from &&
+            updatedDay.to
+          ) {
+            const fromMin = timeToMinutes(updatedDay.from);
+            const toMin = timeToMinutes(updatedDay.to);
+
+            if (fromMin >= toMin) {
+              Swal.fire({
+                icon: "error",
+                title: "Horario inválido",
+                text:
+                  "La hora de salida debe ser mayor a la hora de entrada. No se permiten horarios que crucen al día siguiente.",
+                confirmButtonColor: "#C0A060",
+              });
+
+              return day; // ❌ bloquea el cambio
+            }
+          }
+
+          return updatedDay;
+        });
+
+        return { ...barber, schedule: updatedSchedule };
+      })
+    );
   };
 
-  const handleSave = () => {
-    Swal.fire({
-      title: "Horarios actualizados",
-      text: "Tu disponibilidad fue guardada correctamente.",
-      icon: "success",
+  /* ======================
+     ADD BARBER
+  ====================== */
+  const addBarber = async () => {
+    const { value: name } = await Swal.fire({
+      title: "Nuevo barbero",
+      input: "text",
+      inputPlaceholder: "Nombre del barbero",
+      showCancelButton: true,
+      confirmButtonText: "Agregar",
       confirmButtonColor: "#C0A060",
-      confirmButtonText: "Perfecto",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!name) return;
+
+    const newBarber = {
+      id: Date.now(),
+      name,
+      schedule: structuredClone(baseSchedule),
+    };
+
+    setBarbers((prev) => [...prev, newBarber]);
+    setActiveBarberId(newBarber.id);
+
+    Swal.fire({
+      icon: "success",
+      title: "Barbero agregado",
+      text: `${name} fue agregado correctamente`,
+      confirmButtonColor: "#C0A060",
+    });
+  };
+
+  /* ======================
+     DELETE BARBER
+  ====================== */
+  const deleteBarber = async () => {
+    if (barbers.length === 1) {
+      Swal.fire({
+        icon: "warning",
+        title: "Acción no permitida",
+        text: "Debe existir al menos un barbero",
+        confirmButtonColor: "#C0A060",
+      });
+      return;
+    }
+
+    const result = await Swal.fire({
+      icon: "warning",
+      title: `¿Eliminar a ${activeBarber.name}?`,
+      text: "Esta acción no se puede deshacer",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#9B1C1C",
+    });
+
+    if (!result.isConfirmed) return;
+
+    const updated = barbers.filter((b) => b.id !== activeBarberId);
+    setBarbers(updated);
+    setActiveBarberId(updated[0].id);
+
+    Swal.fire({
+      icon: "success",
+      title: "Barbero eliminado",
+      text: `${activeBarber.name} fue eliminado correctamente`,
+      confirmButtonColor: "#C0A060",
+    });
+  };
+
+  /* ======================
+     SAVE
+  ====================== */
+  const saveSchedule = () => {
+    Swal.fire({
+      icon: "success",
+      title: "Horario actualizado",
+      text: `El horario de ${activeBarber.name} fue guardado`,
+      confirmButtonColor: "#C0A060",
     });
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-8">
       {/* HEADER */}
       <div>
         <h2 className="text-2xl font-bold text-barber-black">
-          Horarios y disponibilidad
+          Horarios por barbero
         </h2>
         <p className="text-sm text-barber-gray">
-          Define cuándo estás disponible para recibir citas
+          Administra la disponibilidad de cada barbero
         </p>
       </div>
 
-      {/* TABLE */}
-      <div className="bg-barber-white border border-barber-gray/30 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-barber-light text-barber-gray">
-            <tr>
-              <th className="px-6 py-4 text-left">Día</th>
-              <th className="px-6 py-4 text-center">Disponible</th>
-              <th className="px-6 py-4 text-center">Desde</th>
-              <th className="px-6 py-4 text-center">Hasta</th>
-            </tr>
-          </thead>
+      {/* BARBER SELECTOR */}
+      <div className="flex gap-3 flex-wrap items-center">
+        {barbers.map((barber) => (
+          <button
+            key={barber.id}
+            onClick={() => setActiveBarberId(barber.id)}
+            className={`
+              px-4 py-2 rounded-full border text-sm font-medium transition
+              ${
+                barber.id === activeBarberId
+                  ? "bg-barber-gold text-barber-black border-barber-gold"
+                  : "bg-barber-white border-barber-gray/30 hover:bg-barber-light"
+              }
+            `}
+          >
+            {barber.name}
+          </button>
+        ))}
 
-          <tbody className="divide-y">
-            {schedule.map((day, index) => (
-              <tr
-                key={day.day}
-                className="hover:bg-barber-light/40 transition"
-              >
-                <td className="px-6 py-4 font-medium text-barber-black">
-                  {day.day}
-                </td>
+        <button
+          onClick={addBarber}
+          className="flex items-center gap-1 px-3 py-2 rounded-full border border-dashed border-barber-gray text-barber-gray hover:bg-barber-light"
+        >
+          <Plus size={16} />
+          Agregar
+        </button>
 
-                <td className="px-6 py-4 text-center">
-                  <input
-                    type="checkbox"
-                    checked={day.enabled}
-                    onChange={(e) =>
-                      handleChange(index, "enabled", e.target.checked)
-                    }
-                    className="w-4 h-4 accent-barber-gold cursor-pointer"
-                  />
-                </td>
-
-                <td className="px-6 py-4 text-center">
-                  <input
-                    type="time"
-                    value={day.from}
-                    disabled={!day.enabled}
-                    onChange={(e) =>
-                      handleChange(index, "from", e.target.value)
-                    }
-                    className="input max-w-[120px] mx-auto disabled:opacity-50"
-                  />
-                </td>
-
-                <td className="px-6 py-4 text-center">
-                  <input
-                    type="time"
-                    value={day.to}
-                    disabled={!day.enabled}
-                    onChange={(e) =>
-                      handleChange(index, "to", e.target.value)
-                    }
-                    className="input max-w-[120px] mx-auto disabled:opacity-50"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <button
+          onClick={deleteBarber}
+          className="flex items-center gap-1 px-3 py-2 rounded-full border border-red-300 text-red-600 hover:bg-red-50"
+        >
+          <Trash2 size={16} />
+          Eliminar
+        </button>
       </div>
 
-      {/* ACTIONS */}
+      {/* SCHEDULE */}
+      <div className="grid gap-4">
+        {activeBarber.schedule.map((day, index) => (
+          <div
+            key={day.day}
+            className="flex items-center justify-between bg-barber-white border border-barber-gray/30 rounded-xl p-4"
+          >
+            <div>
+              <p className="font-medium text-barber-black">{day.day}</p>
+              {!day.enabled && (
+                <p className="text-xs text-barber-gray">No disponible</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={day.enabled}
+                onChange={(e) =>
+                  updateDay(index, "enabled", e.target.checked)
+                }
+                className="w-4 h-4 accent-barber-gold"
+              />
+
+              {day.enabled && (
+                <>
+                  <select
+                    value={day.from}
+                    onChange={(e) =>
+                      updateDay(index, "from", e.target.value)
+                    }
+                    className="input w-28"
+                  >
+                    {hours.map((hour) => (
+                      <option key={hour} value={hour}>
+                        {hour}
+                      </option>
+                    ))}
+                  </select>
+
+                  <span className="text-barber-gray">–</span>
+
+                  <select
+                    value={day.to}
+                    onChange={(e) =>
+                      updateDay(index, "to", e.target.value)
+                    }
+                    className="input w-28"
+                  >
+                    {hours
+                      .filter(
+                        (hour) =>
+                          timeToMinutes(hour) >
+                          timeToMinutes(day.from)
+                      )
+                      .map((hour) => (
+                        <option key={hour} value={hour}>
+                          {hour}
+                        </option>
+                      ))}
+                  </select>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* SAVE */}
       <div className="flex justify-end">
-        <button
-          onClick={handleSave}
-          className="btn-primary max-w-xs"
-        >
-          Guardar cambios
+        <button onClick={saveSchedule} className="btn-primary">
+          Guardar horarios
         </button>
       </div>
     </section>

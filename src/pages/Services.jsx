@@ -1,6 +1,13 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
-import { Plus, Pencil, Trash2, Scissors } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Scissors,
+  Clock,
+  DollarSign,
+} from "lucide-react";
 
 const BarberAlert = Swal.mixin({
   background: "#FFFFFF",
@@ -17,6 +24,8 @@ const BarberAlert = Swal.mixin({
     cancelButton: "rounded-lg px-6 py-2 font-semibold text-white",
   },
 });
+
+const durationOptions = [15, 20, 30, 45, 60, 75, 90];
 
 const fakeServices = [
   {
@@ -86,24 +95,24 @@ export default function Services() {
     <section className="space-y-6">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-  <div>
-    <h2 className="text-2xl font-bold text-barber-black flex items-center gap-2">
-      <Scissors className="w-5 h-5 text-barber-gold" />
-      Servicios
-    </h2>
+        <div>
+          <h2 className="text-2xl font-bold text-barber-black flex items-center gap-2">
+            <Scissors className="w-5 h-5 text-barber-gold" />
+            Servicios
+          </h2>
 
-    <p className="text-sm text-barber-gray mt-1">
-      Administra los servicios que los clientes pueden agendar,
-      define duración y precio.
-    </p>
-  </div>
+          <p className="text-sm text-barber-gray mt-1">
+            Administra los servicios que los clientes pueden agendar, define
+            duración y precio.
+          </p>
+        </div>
 
-  <button
-    onClick={() => {
-      setSelectedService(null);
-      setOpenModal(true);
-    }}
-    className="
+        <button
+          onClick={() => {
+            setSelectedService(null);
+            setOpenModal(true);
+          }}
+          className="
       flex items-center gap-2
       bg-barber-gold
       text-barber-black
@@ -113,11 +122,11 @@ export default function Services() {
       hover:opacity-90
       transition
     "
-  >
-    <Plus className="w-4 h-4" />
-    Nuevo servicio
-  </button>
-</div>
+        >
+          <Plus className="w-4 h-4" />
+          Nuevo servicio
+        </button>
+      </div>
 
       {/* LISTADO */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -146,9 +155,16 @@ export default function Services() {
 
               <p className="text-sm text-barber-gray">{service.description}</p>
 
-              <div className="text-sm text-barber-gray">
-                <p>⏱ {service.duration}</p>
-                <p>💰 {service.price}</p>
+              <div className="flex flex-col gap-1 text-sm text-barber-gray">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-barber-gold" />
+                  <span>{service.duration}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-barber-gold" />
+                  <span>{service.price}</span>
+                </div>
               </div>
 
               {/* ACTIONS */}
@@ -279,19 +295,28 @@ function ServiceModal({ service, onClose }) {
           className="input"
         />
 
-        <input
+        <select
           name="duration"
           value={form.duration}
           onChange={handleChange}
-          placeholder="Duración *"
           className="input"
-        />
+        >
+          <option value="">Duración *</option>
+          {durationOptions.map((min) => (
+            <option key={min} value={min}>
+              {min} minutos
+            </option>
+          ))}
+        </select>
 
         <input
+          type="number"
           name="price"
           value={form.price}
           onChange={handleChange}
           placeholder="Precio *"
+          min={0}
+          step={10}
           className="input"
         />
 

@@ -1,6 +1,13 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
-import { Clock, CheckCircle, XCircle, Check, Edit, Trash2 } from "lucide-react";
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  Check,
+  Edit,
+  Trash2,
+} from "lucide-react";
 
 /* ================= ALERT CONFIG ================= */
 const BarberAlert = Swal.mixin({
@@ -14,6 +21,7 @@ const appointmentsMock = [
   {
     id: 1,
     client: "Juan Pérez",
+    barber: { id: 1, name: "Carlos" },
     service: "Corte clásico",
     date: "2026-01-25",
     time: "14:00",
@@ -22,6 +30,7 @@ const appointmentsMock = [
   {
     id: 2,
     client: "Carlos Ramírez",
+    barber: { id: 2, name: "Miguel" },
     service: "Barba premium",
     date: "2026-01-25",
     time: "16:30",
@@ -30,6 +39,7 @@ const appointmentsMock = [
   {
     id: 3,
     client: "Luis Gómez",
+    barber: { id: 1, name: "Carlos" },
     service: "Corte + barba",
     date: "2026-01-26",
     time: "11:00",
@@ -42,22 +52,27 @@ export default function Appointments() {
   const [appointments, setAppointments] = useState(appointmentsMock);
   const [filterStatus, setFilterStatus] = useState("Todas");
   const [searchClient, setSearchClient] = useState("");
-  const [filterService, setFilterService] = useState("Todos");
-  const [filterRange, setFilterRange] = useState("Todas");
+  const [filterBarber, setFilterBarber] = useState("Todos");
   const [editingAppointment, setEditingAppointment] = useState(null);
+
+  /* ================= BARBERS LIST ================= */
+  const barbers = [
+    ...new Set(appointments.map((a) => a.barber.name)),
+  ];
 
   /* ================= FILTER LOGIC ================= */
   const filtered = appointments.filter((a) => {
-    const statusMatch = filterStatus === "Todas" || a.status === filterStatus;
+    const statusMatch =
+      filterStatus === "Todas" || a.status === filterStatus;
 
     const clientMatch = a.client
       .toLowerCase()
       .includes(searchClient.toLowerCase());
 
-    const serviceMatch =
-      filterService === "Todos" || a.service === filterService;
+    const barberMatch =
+      filterBarber === "Todos" || a.barber.name === filterBarber;
 
-    return statusMatch && clientMatch && serviceMatch;
+    return statusMatch && clientMatch && barberMatch;
   });
 
   /* ================= STATUS STYLES ================= */
@@ -76,13 +91,15 @@ export default function Appointments() {
   /* ================= ACTIONS ================= */
   const handleConfirm = (id) => {
     setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "Confirmada" } : a)),
+      prev.map((a) =>
+        a.id === id ? { ...a, status: "Confirmada" } : a
+      )
     );
 
     BarberAlert.fire(
       "Cita confirmada",
       "La cita fue confirmada correctamente",
-      "success",
+      "success"
     );
   };
 
@@ -98,14 +115,16 @@ export default function Appointments() {
       if (result.isConfirmed) {
         setAppointments((prev) =>
           prev.map((a) =>
-            a.id === appointment.id ? { ...a, status: "Cancelada" } : a,
-          ),
+            a.id === appointment.id
+              ? { ...a, status: "Cancelada" }
+              : a
+          )
         );
 
         BarberAlert.fire(
           "Cita cancelada",
           "La cita fue cancelada correctamente",
-          "success",
+          "success"
         );
       }
     });
@@ -132,31 +151,34 @@ export default function Appointments() {
           onChange={(e) => setSearchClient(e.target.value)}
         />
 
+        {/* FILTRO POR BARBERO */}
         <select
-          className="input w-44"
-          value={filterService}
-          onChange={(e) => setFilterService(e.target.value)}
+          className="input w-48"
+          value={filterBarber}
+          onChange={(e) => setFilterBarber(e.target.value)}
         >
-          <option value="Todos">Todos los servicios</option>
-          <option>Corte clásico</option>
-          <option>Barba premium</option>
-          <option>Corte + barba</option>
+          <option value="Todos">Todos los barberos</option>
+          {barbers.map((barber) => (
+            <option key={barber}>{barber}</option>
+          ))}
         </select>
 
-        {["Todas", "Pendiente", "Confirmada", "Cancelada"].map((state) => (
-          <button
-            key={state}
-            onClick={() => setFilterStatus(state)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition
+        {["Todas", "Pendiente", "Confirmada", "Cancelada"].map(
+          (state) => (
+            <button
+              key={state}
+              onClick={() => setFilterStatus(state)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition
                 ${
                   filterStatus === state
                     ? "bg-barber-gold text-barber-black"
                     : "bg-barber-light text-barber-gray hover:bg-barber-gold/20"
                 }`}
-          >
-            {state}
-          </button>
-        ))}
+            >
+              {state}
+            </button>
+          )
+        )}
       </div>
 
       {/* ================= TABLE ================= */}
@@ -165,6 +187,7 @@ export default function Appointments() {
           <thead className="bg-barber-light text-barber-gray">
             <tr>
               <th className="px-6 py-4 text-left">Cliente</th>
+              <th className="px-6 py-4 text-left">Barbero</th>
               <th className="px-6 py-4 text-left">Servicio</th>
               <th className="px-6 py-4 text-left">Fecha</th>
               <th className="px-6 py-4 text-left">Hora</th>
@@ -177,6 +200,7 @@ export default function Appointments() {
             {filtered.map((a) => (
               <tr key={a.id} className="hover:bg-barber-light/50">
                 <td className="px-6 py-4 font-medium">{a.client}</td>
+                <td className="px-6 py-4">{a.barber.name}</td>
                 <td className="px-6 py-4">{a.service}</td>
                 <td className="px-6 py-4">{a.date}</td>
                 <td className="px-6 py-4">{a.time}</td>
@@ -229,6 +253,7 @@ export default function Appointments() {
           </div>
         )}
       </div>
+
 
       {/* ================= MODAL ================= */}
       {editingAppointment && (
