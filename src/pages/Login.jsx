@@ -2,13 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import Swal from "sweetalert2";
+import supabase from "../utils/supabase";
 
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const handleForgotPassword = () => {
+  const handleForgotPassword = () => {
     Swal.fire({
       title: "Recuperar contraseña",
       text: "Se enviará un enlace de recuperación a tu correo electrónico.",
@@ -16,6 +20,81 @@ export default function Login() {
       confirmButtonText: "Entendido",
       confirmButtonColor: "#C0A060",
     });
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    
+    // Validaciones básicas
+    if (!email || !password) {
+      Swal.fire({
+        title: "Campos requeridos",
+        text: "Por favor ingresa tu correo y contraseña",
+        icon: "warning",
+        confirmButtonColor: "#C0A060",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // 1. Autenticar con Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      // 2. Obtener el perfil del usuario
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("rol")
+        .eq("id", authData.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // 3. Validar que el rol sea barbero
+      if (profileData.rol !== "barbero") {
+        // Cerrar sesión si no es barbero
+        await supabase.auth.signOut();
+        
+        Swal.fire({
+          title: "Acceso denegado",
+          text: "Solo los barberos pueden acceder a este panel",
+          icon: "error",
+          confirmButtonColor: "#C0A060",
+        });
+        return;
+      }
+
+      // 4. Login exitoso
+      Swal.fire({
+        title: "¡Bienvenido!",
+        text: "Inicio de sesión exitoso",
+        icon: "success",
+        confirmButtonColor: "#C0A060",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      // Navegar al dashboard
+      navigate("/dashboard");
+
+    } catch (error) {
+      console.error("Error en login:", error);
+      
+      Swal.fire({
+        title: "Error",
+        text: error.message || "Credenciales inválidas",
+        icon: "error",
+        confirmButtonColor: "#C0A060",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -135,6 +214,9 @@ export default function Login() {
             type="email"
             placeholder="Correo electrónico"
             className="input pl-10"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
           />
         </div>
 
@@ -149,6 +231,10 @@ export default function Login() {
             type={showPassword ? "text" : "password"}
             placeholder="Contraseña"
             className="input pl-10 pr-12"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleLogin(e)}
+            disabled={loading}
           />
 
           <button
@@ -160,6 +246,7 @@ export default function Login() {
               hover:text-barber-black
               transition
             "
+            disabled={loading}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -188,10 +275,11 @@ export default function Login() {
 
         {/* BUTTON */}
         <button
-          onClick={() => navigate("/dashboard")}
-          className="btn-primary w-full"
+          onClick={handleLogin}
+          className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading}
         >
-          Iniciar sesión
+          {loading ? "Iniciando sesión..." : "Iniciar sesión"}
         </button>
 
         {/* FOOTER */}

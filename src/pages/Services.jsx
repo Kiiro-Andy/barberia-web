@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import supabase from "../utils/supabase";
 import {
   Plus,
   Pencil,
@@ -27,51 +28,47 @@ const BarberAlert = Swal.mixin({
 
 const durationOptions = [15, 20, 30, 45, 60, 75, 90];
 
-const fakeServices = [
-  {
-    id: 1,
-    name: "Corte de Cabello",
-    description: "Corte clásico o moderno",
-    duration: "30 min",
-    price: "$150",
-    image: null,
-  },
-  {
-    id: 2,
-    name: "Barba",
-    description: "Perfilado y arreglo de barba",
-    duration: "20 min",
-    price: "$100",
-    image: null,
-  },
-  {
-    id: 3,
-    name: "Corte + Barba",
-    description: "Corte de cabello y perfilado de barba",
-    duration: "50 min",
-    price: "$200",
-    image: null,
-  },
-  {
-    id: 4,
-    name: "Corte de Cabello",
-    description: "Corte Buzzcut o rapado",
-    duration: "30 min",
-    price: "$190",
-    image: null,
-  },
-];
-
 export default function Services() {
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+
+  // Cargar servicios desde Supabase
+  const loadServices = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('services')
+        .select('id, nombre, descripcion, precio')
+        .order('id', { ascending: true });
+      
+      if (error) throw error;
+      
+      setServices(data || []);
+    } catch (error) {
+      console.error('Error al cargar servicios:', error);
+      BarberAlert.fire({
+        title: "Error",
+        text: "No se pudieron cargar los servicios",
+        icon: "error",
+        confirmButtonText: "Entendido"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadServices();
+  }, []);
 
   const handleDelete = (service) => {
     BarberAlert.fire({
       title: "¿Eliminar servicio?",
       html: `
       <p>
-        El servicio <strong>${service.name}</strong> será eliminado
+        El servicio <strong>${service.nombre}</strong> será eliminado
         y ya no estará disponible para agendar citas.
       </p>
     `,
@@ -130,7 +127,16 @@ export default function Services() {
 
       {/* LISTADO */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {fakeServices.map((service) => (
+        {loading ? (
+          <div className="col-span-full text-center py-12 text-barber-gray">
+            Cargando servicios...
+          </div>
+        ) : services.length === 0 ? (
+          <div className="col-span-full text-center py-12 text-barber-gray">
+            No hay servicios disponibles. Agrega uno nuevo para comenzar.
+          </div>
+        ) : (
+          services.map((service) => (
           <div
             key={service.id}
             className="
@@ -150,20 +156,15 @@ export default function Services() {
             {/* CONTENT */}
             <div className="p-5 space-y-2">
               <h3 className="text-lg font-semibold text-barber-black">
-                {service.name}
+                {service.nombre}
               </h3>
 
-              <p className="text-sm text-barber-gray">{service.description}</p>
+              <p className="text-sm text-barber-gray">{service.descripcion}</p>
 
               <div className="flex flex-col gap-1 text-sm text-barber-gray">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-barber-gold" />
-                  <span>{service.duration}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-barber-gold" />
-                  <span>{service.price}</span>
+                  <span>${service.precio}</span>
                 </div>
               </div>
 
@@ -208,7 +209,8 @@ export default function Services() {
               </div>
             </div>
           </div>
-        ))}
+        )))
+        }
       </div>
 
       {/* MODAL */}
