@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { Plus, Trash2, Layers } from "lucide-react";
 import Calendar from "react-calendar";
@@ -196,14 +196,39 @@ export default function Schedule() {
 
   // ========== BARBEROS ==========
   const addBarber = async () => {
-    const { value: name } = await Swal.fire({
+    const { value: formValues } = await Swal.fire({
       title: "Nuevo barbero",
-      input: "text",
-      inputPlaceholder: "Nombre del barbero",
+      html: `
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <input id="swal-name" class="swal2-input" placeholder="Nombre" style="margin: 0;">
+          <input id="swal-email" type="email" class="swal2-input" placeholder="Email" style="margin: 0;">
+          <input id="swal-phone" type="tel" class="swal2-input" placeholder="Teléfono" style="margin: 0;">
+          <input id="swal-password" type="password" class="swal2-input" placeholder="Contraseña" style="margin: 0;">
+        </div>
+      `,
       showCancelButton: true,
       confirmButtonText: "Agregar",
       confirmButtonColor: "#C0A060",
       cancelButtonText: "Cancelar",
+      focusConfirm: false,
+      preConfirm: () => {
+        const name = document.getElementById("swal-name").value;
+        const email = document.getElementById("swal-email").value;
+        const phone = document.getElementById("swal-phone").value;
+        const password = document.getElementById("swal-password").value;
+
+        if (!name || !email || !phone || !password) {
+          Swal.showValidationMessage("Todos los campos son obligatorios");
+          return false;
+        }
+
+        if (password.length < 6) {
+          Swal.showValidationMessage("La contraseña debe tener al menos 6 caracteres");
+          return false;
+        }
+
+        return { name, email, phone, password };
+      },
     });
     if (!name) return;
     const newBarber = {
@@ -215,11 +240,63 @@ export default function Schedule() {
     setActiveBarberId(newBarber.id);
     exitMultiMode();
     Swal.fire({
-      icon: "success",
-      title: "Barbero agregado",
-      text: `${name} fue agregado correctamente`,
-      confirmButtonColor: "#C0A060",
+      title: "Registrando barbero...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
     });
+
+    try {
+      // Crear usuario en Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: formValues.email,
+        password: formValues.password,
+        options: {
+          data: {
+            name: formValues.name,
+            phone: formValues.phone,
+            rol: "barbero",
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      // Insertar en la tabla profiles
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: data.user.id,
+          email: formValues.email,
+          nombre: formValues.name,
+          telefono: formValues.phone,
+          rol: "barbero",
+        });
+
+      if (profileError) throw profileError;
+
+      // Recargar barberos desde la base de datos
+      await loadBarbers();
+
+      Swal.fire({
+        icon: "success",
+        title: "Barbero agregado",
+        html: `
+          <p><strong>${formValues.name}</strong> fue registrado correctamente.</p>
+          <p class="text-sm text-gray-500 mt-2">Email: ${formValues.email}</p>
+          <p class="text-sm text-gray-500">Teléfono: ${formValues.phone}</p>
+        `,
+        confirmButtonColor: "#C0A060",
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error al registrar",
+        text: error.message || "No se pudo registrar al barbero. Intenta de nuevo.",
+        confirmButtonColor: "#C0A060",
+      });
+    }
   };
 
   const deleteBarber = async () => {
@@ -247,11 +324,39 @@ export default function Schedule() {
     setActiveBarberId(updated[0].id);
     exitMultiMode();
     Swal.fire({
-      icon: "success",
-      title: "Barbero eliminado",
-      text: `${activeBarber.name} fue eliminado correctamente`,
-      confirmButtonColor: "#C0A060",
+      title: "Eliminando barbero...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
     });
+
+    try {
+      // Eliminar de la tabla profiles
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", activeBarberId);
+
+      if (error) throw error;
+
+      // Recargar barberos
+      await loadBarbers();
+
+      Swal.fire({
+        icon: "success",
+        title: "Barbero eliminado",
+        text: `${activeBarber.name} fue eliminado correctamente`,
+        confirmButtonColor: "#C0A060",
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error al eliminar",
+        text: error.message || "No se pudo eliminar al barbero. Intenta de nuevo.",
+        confirmButtonColor: "#C0A060",
+      });
+    }
   };
 
   const saveSchedule = () => {
@@ -293,7 +398,8 @@ export default function Schedule() {
               }
             `}
           >
-            {barber.name}
+            <Plus size={16} className="inline mr-2" />
+            Agregar primer barbero
           </button>
         ))}
         <button
