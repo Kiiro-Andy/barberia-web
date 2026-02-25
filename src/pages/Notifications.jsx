@@ -19,7 +19,7 @@ const notifications = [
   {
     id: 3,
     type: "update",
-    text: "Nuevo servicio agregado desde la app móvil",
+    text: "Nuevo servicio agregado: Corte de cabello",
     time: "Ayer",
     read: true,
   },
@@ -50,7 +50,7 @@ export default function Notifications() {
   const MAX_VISIBLE = 5;
 
   return (
-    <section className="bg-barber-white rounded-2xl border border-barber-gray/30 p-6 space-y-6">
+    <section className="bg-barber-white rounded-2xl border border-barber-gray/30 p-4 md:p-6 space-y-6">
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-barber-black flex items-center gap-2">
@@ -135,7 +135,7 @@ function NotificationItem({ data }) {
 
 function SummaryCard({ title, value }) {
   return (
-    <div className="bg-barber-light rounded-xl p-4 border-2 border-barber-gold/40">
+    <div className="bg-barber-light rounded-xl p-4 border-2 border-barber-gold/40 text-center md:text-left">
       <p className="text-xs text-barber-gray">{title}</p>
       <p className="text-2xl font-bold text-barber-gold mt-1">{value}</p>
     </div>

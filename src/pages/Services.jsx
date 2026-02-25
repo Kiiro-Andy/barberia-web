@@ -95,13 +95,13 @@ export default function Services() {
     <section className="space-y-6">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-barber-black flex items-center gap-2">
+        <div className="space-y-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-barber-black flex items-center gap-2">
             <Scissors className="w-5 h-5 text-barber-gold" />
             Servicios
           </h2>
 
-          <p className="text-sm text-barber-gray mt-1">
+          <p className="text-xs sm:text-sm text-barber-gray">
             Administra los servicios que los clientes pueden agendar, define
             duración y precio.
           </p>
@@ -113,7 +113,8 @@ export default function Services() {
             setOpenModal(true);
           }}
           className="
-      flex items-center gap-2
+      w-full sm:w-auto
+      flex items-center justify-center gap-2
       bg-barber-gold
       text-barber-black
       px-4 py-2
@@ -129,7 +130,7 @@ export default function Services() {
       </div>
 
       {/* LISTADO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
         {fakeServices.map((service) => (
           <div
             key={service.id}
@@ -148,7 +149,7 @@ export default function Services() {
             </div>
 
             {/* CONTENT */}
-            <div className="p-5 space-y-2">
+            <div className="p-4 sm:p-5 space-y-3">
               <h3 className="text-lg font-semibold text-barber-black">
                 {service.name}
               </h3>
@@ -168,7 +169,7 @@ export default function Services() {
               </div>
 
               {/* ACTIONS */}
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 pt-3">
                 <button
                   onClick={() => {
                     setSelectedService(service);
@@ -273,9 +274,9 @@ function ServiceModal({ service, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-barber-white w-full max-w-lg rounded-2xl p-6 space-y-4">
-        <h3 className="text-xl font-bold text-barber-gold">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-barber-white w-full max-w-lg rounded-2xl p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <h3 className="text-lg sm:text-xl font-bold text-barber-gold">
           {isEdit ? "Editar servicio" : "Nuevo servicio"}
         </h3>
 
@@ -293,6 +294,7 @@ function ServiceModal({ service, onClose }) {
           onChange={handleChange}
           placeholder="Descripción"
           className="input"
+          rows={3}
         />
 
         <select
@@ -303,7 +305,7 @@ function ServiceModal({ service, onClose }) {
         >
           <option value="">Duración *</option>
           {durationOptions.map((min) => (
-            <option key={min} value={min}>
+            <option key={min} value={`${min} min`}>
               {min} minutos
             </option>
           ))}
@@ -328,11 +330,11 @@ function ServiceModal({ service, onClose }) {
           className="input"
         />
 
-        <div className="flex gap-3 pt-4">
-          <button onClick={onClose} className="btn-secondary">
+        <div className="flex flex-col sm:flex-row gap-2 pt-3">
+          <button onClick={onClose} className="btn-secondary w-full">
             Cancelar
           </button>
-          <button onClick={handleSubmit} className="btn-primary">
+          <button onClick={handleSubmit} className="btn-primary w-full">
             Guardar
           </button>
         </div>
