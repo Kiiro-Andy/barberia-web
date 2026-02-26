@@ -8,4 +8,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Las variables de entorno VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY son requeridas')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    storage: window.localStorage,
+    autoRefreshToken: true,
+    detectSessionInUrl: false
+  }
+})

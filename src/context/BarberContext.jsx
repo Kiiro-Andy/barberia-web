@@ -14,7 +14,7 @@ export const BarberProvider = ({ children }) => {
   const [selectedBarberId, setSelectedBarberId] = useState(() => {
     // Intentar cargar del localStorage
     const saved = localStorage.getItem('selectedBarberId');
-    return saved ? parseInt(saved) : null;
+    return saved || null;
   });
 
   const [selectedBarberName, setSelectedBarberName] = useState(() => {
@@ -25,10 +25,14 @@ export const BarberProvider = ({ children }) => {
   // Guardar en localStorage cuando cambie
   useEffect(() => {
     if (selectedBarberId) {
-      localStorage.setItem('selectedBarberId', selectedBarberId.toString());
+      localStorage.setItem('selectedBarberId', selectedBarberId);
+    } else {
+      localStorage.removeItem('selectedBarberId');
     }
     if (selectedBarberName) {
       localStorage.setItem('selectedBarberName', selectedBarberName);
+    } else {
+      localStorage.removeItem('selectedBarberName');
     }
   }, [selectedBarberId, selectedBarberName]);
 

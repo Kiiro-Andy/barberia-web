@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import Swal from "sweetalert2";
-import supabase from "../utils/supabase";
+import { supabase } from "../supabaseClient";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -11,6 +11,17 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Verificar si ya está autenticado
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard", { replace: true });
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const handleForgotPassword = () => {
     Swal.fire({

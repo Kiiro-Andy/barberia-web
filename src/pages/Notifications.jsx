@@ -20,8 +20,6 @@ export default function Notifications() {
       fetchStats();
 
       // Suscripción en tiempo real a nuevas notificaciones
-      console.log('🔄 Suscribiendo a notificaciones en tiempo real para:', selectedBarberId);
-      
       const subscription = supabase
         .channel('notifications-channel')
         .on(
@@ -33,7 +31,6 @@ export default function Notifications() {
             filter: `barber_id=eq.${selectedBarberId}`
           },
           (payload) => {
-            console.log('🔔 Cambio en notificaciones:', payload);
             // Refrescar cuando hay cambios
             fetchNotifications();
           }
@@ -42,7 +39,6 @@ export default function Notifications() {
 
       // Cleanup
       return () => {
-        console.log('🔌 Desconectando suscripción de notificaciones');
         subscription.unsubscribe();
       };
     }
@@ -50,21 +46,13 @@ export default function Notifications() {
 
   const fetchNotifications = async () => {
     try {
-      console.log('🔔 Cargando notificaciones para barbero:', selectedBarberId);
-      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('barber_id', selectedBarberId) // El barbero recibe notificaciones
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('❌ Error al cargar notificaciones:', error);
-        throw error;
-      }
-
-      console.log('✅ Notificaciones obtenidas:', data);
-      console.log('📊 Cantidad de notificaciones:', data?.length || 0);
+      if (error) throw error;
       
       setNotifications(data || []);
     } catch (error) {
