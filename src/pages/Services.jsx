@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import { supabase } from "../supabaseClient";
 import {
   Plus,
   Pencil,
@@ -27,51 +28,47 @@ const BarberAlert = Swal.mixin({
 
 const durationOptions = [15, 20, 30, 45, 60, 75, 90];
 
-const fakeServices = [
-  {
-    id: 1,
-    name: "Corte de Cabello",
-    description: "Corte clásico o moderno",
-    duration: "30 min",
-    price: "$150",
-    image: null,
-  },
-  {
-    id: 2,
-    name: "Barba",
-    description: "Perfilado y arreglo de barba",
-    duration: "20 min",
-    price: "$100",
-    image: null,
-  },
-  {
-    id: 3,
-    name: "Corte + Barba",
-    description: "Corte de cabello y perfilado de barba",
-    duration: "50 min",
-    price: "$200",
-    image: null,
-  },
-  {
-    id: 4,
-    name: "Corte de Cabello",
-    description: "Corte Buzzcut o rapado",
-    duration: "30 min",
-    price: "$190",
-    image: null,
-  },
-];
-
 export default function Services() {
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+
+  // Cargar servicios desde Supabase
+  const loadServices = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('services')
+        .select('id, nombre, descripcion, precio')
+        .order('id', { ascending: true });
+      
+      if (error) throw error;
+      
+      setServices(data || []);
+    } catch (error) {
+      console.error('Error al cargar servicios:', error);
+      BarberAlert.fire({
+        title: "Error",
+        text: "No se pudieron cargar los servicios",
+        icon: "error",
+        confirmButtonText: "Entendido"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadServices();
+  }, []);
 
   const handleDelete = (service) => {
     BarberAlert.fire({
       title: "¿Eliminar servicio?",
       html: `
       <p>
-        El servicio <strong>${service.name}</strong> será eliminado
+        El servicio <strong>${service.nombre}</strong> será eliminado
         y ya no estará disponible para agendar citas.
       </p>
     `,
@@ -95,13 +92,13 @@ export default function Services() {
     <section className="space-y-6">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-barber-black flex items-center gap-2">
+        <div className="space-y-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-barber-black flex items-center gap-2">
             <Scissors className="w-5 h-5 text-barber-gold" />
             Servicios
           </h2>
 
-          <p className="text-sm text-barber-gray mt-1">
+          <p className="text-xs sm:text-sm text-barber-gray">
             Administra los servicios que los clientes pueden agendar, define
             duración y precio.
           </p>
@@ -113,7 +110,8 @@ export default function Services() {
             setOpenModal(true);
           }}
           className="
-      flex items-center gap-2
+      w-full sm:w-auto
+      flex items-center justify-center gap-2
       bg-barber-gold
       text-barber-black
       px-4 py-2
@@ -129,8 +127,20 @@ export default function Services() {
       </div>
 
       {/* LISTADO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {fakeServices.map((service) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
+        {loading ? (
+          <div className="col-span-full text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-barber-gold mx-auto mb-4"></div>
+            <p className="text-barber-gray">Cargando servicios...</p>
+          </div>
+        ) : services.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Scissors className="w-16 h-16 mx-auto mb-4 text-barber-gray opacity-30" />
+            <p className="text-barber-gray">No hay servicios registrados</p>
+            <p className="text-sm text-barber-gray mt-1">Agrega tu primer servicio</p>
+          </div>
+        ) : (
+          services.map((service) => (
           <div
             key={service.id}
             className="
@@ -148,27 +158,22 @@ export default function Services() {
             </div>
 
             {/* CONTENT */}
-            <div className="p-5 space-y-2">
+            <div className="p-4 sm:p-5 space-y-3">
               <h3 className="text-lg font-semibold text-barber-black">
-                {service.name}
+                {service.nombre}
               </h3>
 
-              <p className="text-sm text-barber-gray">{service.description}</p>
+              <p className="text-sm text-barber-gray">{service.descripcion}</p>
 
               <div className="flex flex-col gap-1 text-sm text-barber-gray">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-barber-gold" />
-                  <span>{service.duration}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-barber-gold" />
-                  <span>{service.price}</span>
+                  <span>${service.precio}</span>
                 </div>
               </div>
 
               {/* ACTIONS */}
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 pt-3">
                 <button
                   onClick={() => {
                     setSelectedService(service);
@@ -208,7 +213,8 @@ export default function Services() {
               </div>
             </div>
           </div>
-        ))}
+        )))
+        }
       </div>
 
       {/* MODAL */}
@@ -273,9 +279,9 @@ function ServiceModal({ service, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-barber-white w-full max-w-lg rounded-2xl p-6 space-y-4">
-        <h3 className="text-xl font-bold text-barber-gold">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-barber-white w-full max-w-lg rounded-2xl p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <h3 className="text-lg sm:text-xl font-bold text-barber-gold">
           {isEdit ? "Editar servicio" : "Nuevo servicio"}
         </h3>
 
@@ -293,6 +299,7 @@ function ServiceModal({ service, onClose }) {
           onChange={handleChange}
           placeholder="Descripción"
           className="input"
+          rows={3}
         />
 
         <select
@@ -303,7 +310,7 @@ function ServiceModal({ service, onClose }) {
         >
           <option value="">Duración *</option>
           {durationOptions.map((min) => (
-            <option key={min} value={min}>
+            <option key={min} value={`${min} min`}>
               {min} minutos
             </option>
           ))}
@@ -328,11 +335,11 @@ function ServiceModal({ service, onClose }) {
           className="input"
         />
 
-        <div className="flex gap-3 pt-4">
-          <button onClick={onClose} className="btn-secondary">
+        <div className="flex flex-col sm:flex-row gap-2 pt-3">
+          <button onClick={onClose} className="btn-secondary w-full">
             Cancelar
           </button>
-          <button onClick={handleSubmit} className="btn-primary">
+          <button onClick={handleSubmit} className="btn-primary w-full">
             Guardar
           </button>
         </div>

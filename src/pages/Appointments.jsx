@@ -133,7 +133,7 @@ export default function Appointments() {
   return (
     <section className="space-y-6 p-6">
       {/* ================= HEADER ================= */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-barber-black">
             Gestión de citas
@@ -145,7 +145,15 @@ export default function Appointments() {
 
         <button
           onClick={() => setShowCalendar(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-barber-gold text-barber-black font-semibold hover:opacity-90"
+          className="flex items-center justify-center gap-2
+    w-full sm:w-auto
+    px-4 py-2
+    rounded-lg
+    bg-barber-gold
+    text-barber-black
+    font-semibold
+    hover:opacity-90
+    transition"
         >
           <CalendarDays className="w-5 h-5" />
           Calendario
@@ -153,17 +161,17 @@ export default function Appointments() {
       </div>
 
       {/* ================= FILTERS ================= */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
         <input
           placeholder="Buscar cliente"
-          className="input w-56"
+          className="input w-full sm:w-56"
           value={searchClient}
           onChange={(e) => setSearchClient(e.target.value)}
         />
 
         {/* FILTRO POR BARBERO */}
         <select
-          className="input w-48"
+          className="input w-full sm:w-48"
           value={filterBarber}
           onChange={(e) => setFilterBarber(e.target.value)}
         >
@@ -173,107 +181,120 @@ export default function Appointments() {
           ))}
         </select>
 
-        {["Todas", "Pendiente", "Confirmada", "Cancelada"].map((state) => (
-          <button
-            key={state}
-            onClick={() => setFilterStatus(state)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition
-                ${
-                  filterStatus === state
-                    ? "bg-barber-gold text-barber-black"
-                    : "bg-barber-light text-barber-gray hover:bg-barber-gold/20"
-                }`}
-          >
-            {state}
-          </button>
-        ))}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full">
+          {["Todas", "Pendiente", "Confirmada", "Cancelada"].map((state) => (
+            <button
+              key={state}
+              onClick={() => setFilterStatus(state)}
+              className={`
+        w-full sm:w-auto
+        px-4 py-2
+        rounded-lg
+        text-sm font-semibold
+        transition
+        ${
+          filterStatus === state
+            ? "bg-barber-gold text-barber-black"
+            : "bg-barber-light text-barber-gray hover:bg-barber-gold/20"
+        }
+      `}
+            >
+              {state}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ================= TABLE ================= */}
       <div className="bg-barber-white rounded-2xl border border-barber-gray/30 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-barber-light text-barber-gray">
-            <tr>
-              <th className="px-6 py-4 text-left">Cliente</th>
-              <th className="px-6 py-4 text-left">Barbero</th>
-              <th className="px-6 py-4 text-left">Servicio</th>
-              <th className="px-6 py-4 text-left">Fecha</th>
-              <th className="px-6 py-4 text-left">Hora</th>
-              <th className="px-6 py-4 text-left">Estado</th>
-              <th className="px-6 py-4 text-right">Acciones</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y">
-            {filtered.map((a) => (
-              <tr key={a.id} className="hover:bg-barber-light/50">
-                <td className="px-6 py-4 font-medium">{a.client}</td>
-                <td className="px-6 py-4">{a.barber.name}</td>
-                <td className="px-6 py-4">{a.service}</td>
-                <td className="px-6 py-4">{a.date}</td>
-                <td className="px-6 py-4">{a.time}</td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[a.status]}`}
-                  >
-                    {statusIcons[a.status]}
-                    {a.status}
-                  </span>
-                </td>
-
-                <td className="px-6 py-4 text-right space-x-2">
-                  {a.status === "Pendiente" && (
-                    <button
-                      onClick={() => handleConfirm(a.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-green-100 text-green-700 hover:bg-green-200"
-                    >
-                      <Check className="w-4 h-4" />
-                      Confirmar
-                    </button>
-                  )}
-
-                  {a.status !== "Cancelada" && (
-                    <button
-                      onClick={() => setSelectedAppointment(a)}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-barber-gold/20 hover:bg-barber-gold"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Modificar
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => handleCancel(a)}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-barber-wine/10 text-barber-wine hover:bg-barber-wine hover:text-white"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Cancelar
-                  </button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-[900px] w-full text-sm">
+            <thead className="bg-barber-light text-barber-gray">
+              <tr>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Cliente</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Barbero</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Servicio</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Fecha</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Hora</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Estado</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
 
-        {showCalendar && (
-          <CalendarModal
-            appointments={appointments}
-            onClose={() => {
-              setShowCalendar(false);
-              setSelectedDate(null);
-            }}
-            onSelectAppointment={(a) => {
-              setSelectedAppointment(a);
-              setShowCalendar(false);
-            }}
-          />
-        )}
+            <tbody className="divide-y">
+              {filtered.map((a) => (
+                <tr key={a.id} className="hover:bg-barber-light/50">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4">{a.client}</td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4">{a.barber.name}</td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4">{a.service}</td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4">{a.date}</td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4">{a.time}</td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4">
+                    <span
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[a.status]}`}
+                    >
+                      {statusIcons[a.status]}
+                      {a.status}
+                    </span>
+                  </td>
 
-        {filtered.length === 0 && (
-          <div className="p-6 text-center text-barber-gray">
-            No hay citas para este filtro
-          </div>
-        )}
+                  <td className="px-6 py-4">
+  <div className="flex flex-wrap justify-end gap-2">
+
+                    {a.status === "Pendiente" && (
+                      <button
+                        onClick={() => handleConfirm(a.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-green-100 text-green-700 hover:bg-green-200"
+                      >
+                        <Check className="w-4 h-4" />
+                        Confirmar
+                      </button>
+                    )}
+
+                    {a.status !== "Cancelada" && (
+                      <button
+                        onClick={() => setSelectedAppointment(a)}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-barber-gold/20 hover:bg-barber-gold"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Modificar
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleCancel(a)}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-barber-wine/10 text-barber-wine hover:bg-barber-wine hover:text-white"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Cancelar
+                    </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {showCalendar && (
+            <CalendarModal
+              appointments={appointments}
+              onClose={() => {
+                setShowCalendar(false);
+                setSelectedDate(null);
+              }}
+              onSelectAppointment={(a) => {
+                setSelectedAppointment(a);
+                setShowCalendar(false);
+              }}
+            />
+          )}
+
+          {filtered.length === 0 && (
+            <div className="p-6 text-center text-barber-gray">
+              No hay citas para este filtro
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ================= MODAL ================= */}
@@ -304,7 +325,7 @@ export default function Appointments() {
 function EditAppointmentModal({ appointment, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-barber-white w-full max-w-md rounded-2xl p-6 space-y-4">
+      <div className="bg-barber-white w-full max-w-md mx-4 rounded-2xl p-6 space-y-4">
         <h3 className="text-xl font-bold text-barber-gold">Reprogramar cita</h3>
 
         <input type="date" className="input" />
@@ -357,7 +378,7 @@ function AppointmentInfoModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-barber-white w-full max-w-lg rounded-2xl p-6 space-y-6 shadow-xl">
+      <div className="bg-barber-white w-full max-w-lg mx-4 rounded-2xl p-6 space-y-6 shadow-xl">
         {/* HEADER */}
         <div className="flex justify-between items-start">
           <div className="space-y-1">
@@ -386,7 +407,7 @@ function AppointmentInfoModal({
         </div>
 
         {/* INFO GRID */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div className="bg-barber-light rounded-xl p-3 space-y-1">
             <p className="text-barber-gray text-xs">Cliente</p>
             <p className="font-semibold">{appointment.client}</p>
@@ -508,7 +529,7 @@ function CalendarModal({ appointments, onClose, onSelectAppointment }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-barber-white w-full max-w-4xl rounded-2xl p-6 space-y-4">
+      <div className="bg-barber-white w-full max-w-4xl mx-4 rounded-2xl p-4 sm:p-6 space-y-4">
         {/* HEADER */}
         <div className="flex items-center justify-between">
           <button
@@ -546,7 +567,7 @@ function CalendarModal({ appointments, onClose, onSelectAppointment }) {
         </div>
 
         {/* CALENDAR GRID */}
-        <div className="grid grid-cols-7 gap-3">
+        <div className="grid grid-cols-7 gap-1 sm:gap-3 text-xs sm:text-sm">
           {Array.from({ length: startDay }).map((_, i) => (
             <div key={`empty-${i}`} />
           ))}
@@ -564,7 +585,7 @@ function CalendarModal({ appointments, onClose, onSelectAppointment }) {
               <div
                 key={day}
                 className="
-    min-h-[100px]
+    min-h-[70px] sm:min-h-[100px]
     border rounded-xl p-2
     hover:bg-barber-light
     hover:border-barber-gold
