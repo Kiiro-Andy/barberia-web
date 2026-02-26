@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import {
   Clock,
@@ -12,6 +12,9 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
+import { supabase } from "../supabaseClient";
+import { useBarber } from "../context/BarberContext";
+import BarberSelector from "../components/BarberSelector";
 
 /* ================= ALERT CONFIG ================= */
 const BarberAlert = Swal.mixin({
@@ -53,7 +56,8 @@ const appointmentsMock = [
 
 /* ================= MAIN COMPONENT ================= */
 export default function Appointments() {
-  const [appointments, setAppointments] = useState(appointmentsMock);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("Todas");
   const [searchClient, setSearchClient] = useState("");
   const [filterBarber, setFilterBarber] = useState("Todos");
@@ -61,6 +65,86 @@ export default function Appointments() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+
+  // Obtener el barbero seleccionado del contexto
+  const { selectedBarberId, selectedBarberName } = useBarber();
+
+  /* ================= FETCH APPOINTMENTS ================= */
+  useEffect(() => {
+    if (selectedBarberId) {
+      fetchAppointments();
+    }
+  }, [selectedBarberId]);
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+      
+      // Obtener citas del barbero seleccionado
+      const { data: appointmentsData, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('barber_id', selectedBarberId);
+
+      if (appointmentsError) throw appointmentsError;
+
+      if (!appointmentsData || appointmentsData.length === 0) {
+        setAppointments([]);
+        return;
+      }
+
+      // Obtener IDs únicos de clientes
+      const clientIds = [...new Set(appointmentsData.map(apt => apt.user_id).filter(Boolean))];
+
+      // Obtener información de clientes
+      const { data: clientsData } = await supabase
+        .from('profiles')
+        .select('id, nombre')
+        .in('id', clientIds);
+
+      // Crear mapa para búsqueda rápida
+      const clientsMap = {};
+      clientsData?.forEach(client => {
+        clientsMap[client.id] = client.nombre;
+      });
+
+      // Normalizar el estado (primera letra mayúscula)
+      const normalizeStatus = (estado) => {
+        if (!estado) return 'Pendiente';
+        return estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+      };
+
+      // Transformar los datos al formato esperado
+      const transformedData = appointmentsData.map(apt => ({
+        id: apt.id,
+        client: clientsMap[apt.user_id] || 'Cliente desconocido',
+        barber: { id: selectedBarberId, name: selectedBarberName },
+        service: 'Servicio', // No hay campo de servicio en la tabla
+        date: apt.fecha || '',
+        time: apt.hora_inicio || '',
+        status: normalizeStatus(apt.estado)
+      }));
+
+      // Ordenar por fecha y hora
+      transformedData.sort((a, b) => {
+        const dateCompare = a.date.localeCompare(b.date);
+        if (dateCompare !== 0) return dateCompare;
+        return a.time.localeCompare(b.time);
+      });
+
+      setAppointments(transformedData);
+    } catch (error) {
+      console.error('Error al cargar citas:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar las citas.',
+        confirmButtonColor: '#C0A060',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* ================= BARBERS LIST ================= */
   const barbers = [...new Set(appointments.map((a) => a.barber.name))];
@@ -73,10 +157,7 @@ export default function Appointments() {
       .toLowerCase()
       .includes(searchClient.toLowerCase());
 
-    const barberMatch =
-      filterBarber === "Todos" || a.barber.name === filterBarber;
-
-    return statusMatch && clientMatch && barberMatch;
+    return statusMatch && clientMatch;
   });
 
   /* ================= STATUS STYLES ================= */
@@ -93,28 +174,54 @@ export default function Appointments() {
   };
 
   /* ================= ACTIONS ================= */
-  const handleConfirm = (id) => {
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "Confirmada" } : a)),
-    );
+  const handleConfirm = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ estado: 'confirmada' })
+        .eq('id', id);
 
-    BarberAlert.fire(
-      "Cita confirmada",
-      "La cita fue confirmada correctamente",
-      "success",
-    );
+      if (error) throw error;
+
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: "Confirmada" } : a)),
+      );
+
+      BarberAlert.fire(
+        "Cita confirmada",
+        "La cita fue confirmada correctamente",
+        "success",
+      );
+    } catch (error) {
+      console.error('Error al confirmar cita:', error);
+      BarberAlert.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo confirmar la cita.',
+        confirmButtonColor: '#C0A060',
+      });
+    }
   };
 
-  const handleCancel = (appointment) => {
-    BarberAlert.fire({
+  const handleCancel = async (appointment) => {
+    const result = await BarberAlert.fire({
       title: "¿Cancelar cita?",
       text: `La cita de ${appointment.client} será cancelada`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, cancelar",
       cancelButtonText: "Volver",
-    }).then((result) => {
-      if (result.isConfirmed) {
+    });
+    
+    if (result.isConfirmed) {
+      try {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ estado: 'cancelada' })
+          .eq('id', appointment.id);
+
+        if (error) throw error;
+
         setAppointments((prev) =>
           prev.map((a) =>
             a.id === appointment.id ? { ...a, status: "Cancelada" } : a,
@@ -126,25 +233,35 @@ export default function Appointments() {
           "La cita fue cancelada correctamente",
           "success",
         );
+      } catch (error) {
+        console.error('Error al cancelar cita:', error);
+        BarberAlert.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo cancelar la cita.',
+          confirmButtonColor: '#C0A060',
+        });
       }
-    });
+    }
   };
 
   return (
     <section className="space-y-6 p-6">
       {/* ================= HEADER ================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-barber-black">
-            Gestión de citas
-          </h2>
-          <p className="text-sm text-barber-gray">
-            Visualiza, confirma, modifica o cancela citas
-          </p>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-barber-black">
+          Gestión de citas
+        </h2>
+      </div>
 
+      {/* ================= BARBER SELECTOR ================= */}
+      <BarberSelector />
+
+      {/* ================= ACTIONS ================= */}
+      <div className="flex justify-end">
         <button
           onClick={() => setShowCalendar(true)}
+          disabled={!selectedBarberId}
           className="flex items-center justify-center gap-2
     w-full sm:w-auto
     px-4 py-2
@@ -153,33 +270,36 @@ export default function Appointments() {
     text-barber-black
     font-semibold
     hover:opacity-90
-    transition"
+    transition
+    disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CalendarDays className="w-5 h-5" />
           Calendario
         </button>
       </div>
 
+      {/* ================= NO BARBER SELECTED ================= */}
+      {!selectedBarberId && (
+        <div className="bg-barber-light rounded-lg p-8 text-center">
+          <CalendarDays className="w-16 h-16 mx-auto text-barber-gray mb-4" />
+          <h3 className="text-lg font-semibold text-barber-black mb-2">
+            No hay barbero seleccionado
+          </h3>
+          <p className="text-barber-gray">
+            Ve a la sección de <span className="font-semibold">Horarios</span> y selecciona un barbero para ver sus citas.
+          </p>
+        </div>
+      )}
+
       {/* ================= FILTERS ================= */}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+      {selectedBarberId && (
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
         <input
           placeholder="Buscar cliente"
           className="input w-full sm:w-56"
           value={searchClient}
           onChange={(e) => setSearchClient(e.target.value)}
         />
-
-        {/* FILTRO POR BARBERO */}
-        <select
-          className="input w-full sm:w-48"
-          value={filterBarber}
-          onChange={(e) => setFilterBarber(e.target.value)}
-        >
-          <option value="Todos">Todos los barberos</option>
-          {barbers.map((barber) => (
-            <option key={barber}>{barber}</option>
-          ))}
-        </select>
 
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full">
           {["Todas", "Pendiente", "Confirmada", "Cancelada"].map((state) => (
@@ -204,8 +324,18 @@ export default function Appointments() {
           ))}
         </div>
       </div>
+      )}
+
+      {/* ================= LOADING ================= */}
+      {loading && selectedBarberId && (
+        <div className="bg-barber-white rounded-2xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-barber-gold mx-auto mb-4"></div>
+          <p className="text-barber-gray">Cargando citas...</p>
+        </div>
+      )}
 
       {/* ================= TABLE ================= */}
+      {selectedBarberId && !loading && (
       <div className="bg-barber-white rounded-2xl border border-barber-gray/30 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-[900px] w-full text-sm">
@@ -251,16 +381,6 @@ export default function Appointments() {
                       </button>
                     )}
 
-                    {a.status !== "Cancelada" && (
-                      <button
-                        onClick={() => setSelectedAppointment(a)}
-                        className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-barber-gold/20 hover:bg-barber-gold"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Modificar
-                      </button>
-                    )}
-
                     <button
                       onClick={() => handleCancel(a)}
                       className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-barber-wine/10 text-barber-wine hover:bg-barber-wine hover:text-white"
@@ -296,6 +416,7 @@ export default function Appointments() {
           )}
         </div>
       </div>
+      )}
 
       {/* ================= MODAL ================= */}
       {editingAppointment && (

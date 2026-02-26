@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { Plus, Trash2, Save, Clock, Calendar, X } from "lucide-react";
 import { supabase } from "../supabaseClient";
+import { useBarber } from "../context/BarberContext";
 
 const generateHours = (start = 9, end = 20) => {
   const hours = [];
@@ -35,6 +36,9 @@ export default function Schedule() {
   // Estado temporal para selección de horas
   const [selectedHours, setSelectedHours] = useState({});
 
+  // Contexto global del barbero seleccionado
+  const { setSelectedBarber } = useBarber();
+
   const activeBarber = barbers.find((b) => b.id === activeBarberId);
 
   // ========== CARGAR BARBEROS Y SUS HORARIOS ==========
@@ -46,8 +50,13 @@ export default function Schedule() {
     if (activeBarberId) {
       fetchSchedule(activeBarberId);
       fetchTimeOff(activeBarberId);
+      // Actualizar el contexto global con el barbero seleccionado
+      const barber = barbers.find(b => b.id === activeBarberId);
+      if (barber) {
+        setSelectedBarber(barber.id, barber.name);
+      }
     }
-  }, [activeBarberId]);
+  }, [activeBarberId, barbers]);
 
   const fetchBarbers = async () => {
     try {
