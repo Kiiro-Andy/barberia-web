@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { useBarber } from "../context/BarberContext";
+import BarberSelector from "../components/BarberSelector";
 
 /* ================= ALERT CONFIG ================= */
 const BarberAlert = Swal.mixin({
@@ -177,7 +178,7 @@ export default function Appointments() {
     try {
       const { error } = await supabase
         .from('appointments')
-        .update({ estado: 'Confirmada' })
+        .update({ estado: 'confirmada' })
         .eq('id', id);
 
       if (error) throw error;
@@ -216,7 +217,7 @@ export default function Appointments() {
       try {
         const { error } = await supabase
           .from('appointments')
-          .update({ estado: 'Cancelada' })
+          .update({ estado: 'cancelada' })
           .eq('id', appointment.id);
 
         if (error) throw error;
@@ -247,22 +248,17 @@ export default function Appointments() {
   return (
     <section className="space-y-6 p-6">
       {/* ================= HEADER ================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-barber-black">
-            Gestión de citas
-          </h2>
-          {selectedBarberName ? (
-            <p className="text-sm text-barber-gray">
-              Citas de <span className="font-semibold text-barber-gold">{selectedBarberName}</span>
-            </p>
-          ) : (
-            <p className="text-sm text-barber-wine">
-              Selecciona un barbero en la sección de Horarios
-            </p>
-          )}
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-barber-black">
+          Gestión de citas
+        </h2>
+      </div>
 
+      {/* ================= BARBER SELECTOR ================= */}
+      <BarberSelector />
+
+      {/* ================= ACTIONS ================= */}
+      <div className="flex justify-end">
         <button
           onClick={() => setShowCalendar(true)}
           disabled={!selectedBarberId}
@@ -382,16 +378,6 @@ export default function Appointments() {
                       >
                         <Check className="w-4 h-4" />
                         Confirmar
-                      </button>
-                    )}
-
-                    {a.status !== "Cancelada" && (
-                      <button
-                        onClick={() => setSelectedAppointment(a)}
-                        className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-barber-gold/20 hover:bg-barber-gold"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Modificar
                       </button>
                     )}
 

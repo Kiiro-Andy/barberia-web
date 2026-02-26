@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { CalendarPlus, XCircle, Sparkles, Bell, CheckCircle, RefreshCw } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { useBarber } from "../context/BarberContext";
+import BarberSelector from "../components/BarberSelector";
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -144,26 +145,25 @@ export default function Notifications() {
     }
   };
 
-  if (!selectedBarberId) {
-    return (
-      <section className="bg-barber-white rounded-2xl border border-barber-gray/30 p-4 md:p-6">
-        <p className="text-center text-barber-gray">
-          Selecciona un barbero para ver notificaciones
-        </p>
-      </section>
-    );
-  }
-
   return (
     <section className="bg-barber-white rounded-2xl border border-barber-gray/30 p-4 md:p-6 space-y-6">
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-barber-black flex items-center gap-2">
-          <Bell className="w-5 h-5 text-barber-gold" />
-          Resumen del día
-        </h2>
-        <span className="text-sm text-barber-gray">Hoy</span>
-      </div>
+      {/* BARBER SELECTOR */}
+      <BarberSelector />
+
+      {!selectedBarberId ? (
+        <div className="text-center py-8 text-barber-gray">
+          Selecciona un barbero para ver notificaciones
+        </div>
+      ) : (
+        <>
+          {/* HEADER */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-barber-black flex items-center gap-2">
+              <Bell className="w-5 h-5 text-barber-gold" />
+              Resumen del día
+            </h2>
+            <span className="text-sm text-barber-gray">Hoy</span>
+          </div>
 
       {/* SUMMARY */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -224,6 +224,8 @@ export default function Notifications() {
           })
         )}
       </div>
+        </>
+      )}
     </section>
   );
 }
