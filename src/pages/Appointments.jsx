@@ -79,46 +79,27 @@ export default function Appointments() {
     try {
       setLoading(true);
       
-      console.log('Iniciando consulta de citas...');
-      console.log('Barbero seleccionado ID:', selectedBarberId);
-      console.log('Tipo de ID:', typeof selectedBarberId);
-      
-      // Primero intentar obtener TODAS las citas sin filtro para verificar
-      const { data: allAppointments, error: allError } = await supabase
-        .from('appointments')
-        .select('*');
-      
-      console.log('TODAS las citas en la DB:', allAppointments);
-      console.log('Error al obtener todas:', allError);
-      
       // Obtener citas del barbero seleccionado
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select('*')
         .eq('barber_id', selectedBarberId);
 
-      console.log('Citas filtradas por barber_id:', appointmentsData);
-      console.log('Error en consulta filtrada:', appointmentsError);
-
       if (appointmentsError) throw appointmentsError;
 
       if (!appointmentsData || appointmentsData.length === 0) {
-        console.log('No hay citas para este barbero');
         setAppointments([]);
         return;
       }
 
       // Obtener IDs únicos de clientes
       const clientIds = [...new Set(appointmentsData.map(apt => apt.user_id).filter(Boolean))];
-      console.log('IDs de clientes:', clientIds);
 
       // Obtener información de clientes
       const { data: clientsData } = await supabase
         .from('profiles')
         .select('id, nombre')
         .in('id', clientIds);
-
-      console.log('Datos de clientes:', clientsData);
 
       // Crear mapa para búsqueda rápida
       const clientsMap = {};
@@ -142,8 +123,6 @@ export default function Appointments() {
         time: apt.hora_inicio || '',
         status: normalizeStatus(apt.estado)
       }));
-
-      console.log('Citas transformadas:', transformedData);
 
       // Ordenar por fecha y hora
       transformedData.sort((a, b) => {
