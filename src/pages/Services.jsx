@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import supabase from "../utils/supabase";
+import { supabase } from "../supabaseClient";
 import {
   Plus,
   Pencil,
@@ -128,7 +128,19 @@ export default function Services() {
 
       {/* LISTADO */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
-        {fakeServices.map((service) => (
+        {loading ? (
+          <div className="col-span-full text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-barber-gold mx-auto mb-4"></div>
+            <p className="text-barber-gray">Cargando servicios...</p>
+          </div>
+        ) : services.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Scissors className="w-16 h-16 mx-auto mb-4 text-barber-gray opacity-30" />
+            <p className="text-barber-gray">No hay servicios registrados</p>
+            <p className="text-sm text-barber-gray mt-1">Agrega tu primer servicio</p>
+          </div>
+        ) : (
+          services.map((service) => (
           <div
             key={service.id}
             className="
