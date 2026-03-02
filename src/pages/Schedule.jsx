@@ -472,16 +472,12 @@ export default function Schedule() {
       }
 
       // Usar función RPC para crear barbero (tiene permisos SECURITY DEFINER)
-      const params = {
+      const { data, error } = await supabase.rpc('create_barber', {
         p_email: formValues.email,
         p_password: formValues.password,
         p_nombre: formValues.name,
         p_telefono: formValues.phone
-      };
-      
-      console.log('Parámetros enviados a create_barber:', params);
-      
-      const { data, error } = await supabase.rpc('create_barber', params);
+      });
 
       if (error) throw error;
 
