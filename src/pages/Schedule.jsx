@@ -451,13 +451,37 @@ export default function Schedule() {
     });
 
     try {
+      // Verificar si el email ya existe antes de crear
+      const { data: existingUser, error: checkError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', formValues.email)
+        .maybeSingle();
+
+      if (existingUser) {
+        Swal.fire({
+          icon: "warning",
+          title: "Email ya registrado",
+          html: `
+            <p>El email <strong>${formValues.email}</strong> ya está registrado en el sistema.</p>
+            <p class="text-sm text-gray-500 mt-2">Por favor, usa un email diferente.</p>
+          `,
+          confirmButtonColor: "#C0A060",
+        });
+        return;
+      }
+
       // Usar función RPC para crear barbero (tiene permisos SECURITY DEFINER)
-      const { data, error } = await supabase.rpc('create_barber', {
+      const params = {
         p_email: formValues.email,
         p_password: formValues.password,
         p_nombre: formValues.name,
         p_telefono: formValues.phone
-      });
+      };
+      
+      console.log('Parámetros enviados a create_barber:', params);
+      
+      const { data, error } = await supabase.rpc('create_barber', params);
 
       if (error) throw error;
 
@@ -474,17 +498,53 @@ export default function Schedule() {
         confirmButtonColor: "#C0A060",
       });
     } catch (error) {
+      console.error('Error al crear barbero:', error);
+      
+      // Detectar diferentes tipos de errores de duplicado
+      const isDuplicateEmail = error.message?.includes('duplicate key') && 
+                               (error.message?.includes('email') || error.code === '23505');
+      
+      const isDuplicateProfile = error.message?.includes('profiles_pkey') || 
+                                 error.message?.includes('duplicate key value violates unique constraint');
+      
+      let errorTitle = "Error al registrar";
+      let errorMessage = error.message || "No se pudo registrar al barbero.";
+      
+      if (isDuplicateEmail) {
+        errorTitle = "Email ya registrado";
+        errorMessage = `<p>El email <strong>${formValues.email}</strong> ya está registrado en el sistema.</p>
+                        <p class="text-sm text-gray-500 mt-2">Por favor, usa un email diferente.</p>`;
+      } else if (isDuplicateProfile) {
+        errorTitle = "Registro incompleto detectado";
+        errorMessage = `
+          <p>Existe un registro residual en la base de datos para este email.</p>
+          <p class="text-sm text-gray-500 mt-3"><strong>Solución:</strong></p>
+          <ol class="text-sm text-left text-gray-600 mt-2 ml-6">
+            <li>Ve a la tabla <code>profiles</code> en Supabase</li>
+            <li>Busca y elimina el registro con email: <strong>${formValues.email}</strong></li>
+            <li>Intenta crear el barbero nuevamente</li>
+          </ol>
+          <p class="text-sm text-gray-500 mt-3">O usa un email diferente.</p>
+        `;
+      }
+      
       Swal.fire({
         icon: "error",
-        title: "Error al registrar",
-        text: error.message || "No se pudo registrar al barbero.",
+        title: errorTitle,
+        html: errorMessage,
         confirmButtonColor: "#C0A060",
+        customClass: {
+          htmlContainer: 'text-left'
+        }
       });
     }
   };
 
   const deleteBarber = async () => {
-    if (barbers.length === 1) {
+    // Contar solo barberos activos
+    const activeBarbersCount = barbers.length;
+    
+    if (activeBarbersCount === 1) {
       Swal.fire({
         icon: "warning",
         title: "Acción no permitida",
@@ -497,7 +557,15 @@ export default function Schedule() {
     const result = await Swal.fire({
       icon: "warning",
       title: `¿Eliminar a ${activeBarber?.name}?`,
-      text: "Esta acción no se puede deshacer",
+      html: `
+        <p>Este barbero será <strong>eliminado permanentemente</strong> junto con:</p>
+        <ul class="text-sm text-gray-600 mt-2 text-left ml-6">
+          <li>• Su cuenta de usuario</li>
+          <li>• Su horario configurado</li>
+          <li>• Sus días libres</li>
+        </ul>
+        <p class="text-sm text-red-600 mt-3"><strong>Esta acción no se puede deshacer.</strong></p>
+      `,
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
@@ -515,10 +583,10 @@ export default function Schedule() {
     });
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", activeBarberId);
+      // Usar función RPC para eliminar barbero y usuario
+      const { error } = await supabase.rpc('delete_barber', {
+        barber_id: activeBarberId
+      });
 
       if (error) throw error;
 
@@ -531,6 +599,7 @@ export default function Schedule() {
         confirmButtonColor: "#C0A060",
       });
     } catch (error) {
+      console.error('Error al eliminar barbero:', error);
       Swal.fire({
         icon: "error",
         title: "Error al eliminar",
