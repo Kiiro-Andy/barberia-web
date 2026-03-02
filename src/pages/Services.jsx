@@ -8,6 +8,7 @@ import {
   Scissors,
   Clock,
   DollarSign,
+  CheckCircle,
 } from "lucide-react";
 
 const BarberAlert = Swal.mixin({
@@ -40,7 +41,7 @@ export default function Services() {
       setLoading(true);
       const { data, error } = await supabase
         .from('services')
-        .select('id, nombre, descripcion, precio')
+        .select('id, nombre, descripcion, duracion_minutos, precio, activo')
         .order('id', { ascending: true });
       
       if (error) throw error;
@@ -63,29 +64,94 @@ export default function Services() {
     loadServices();
   }, []);
 
-  const handleDelete = (service) => {
-    BarberAlert.fire({
-      title: "¿Eliminar servicio?",
+  const handleDelete = async (service) => {
+    const result = await BarberAlert.fire({
+      title: "¿Desactivar servicio?",
       html: `
       <p>
-        El servicio <strong>${service.nombre}</strong> será eliminado
+        El servicio <strong>${service.nombre}</strong> será desactivado
         y ya no estará disponible para agendar citas.
       </p>
     `,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
+      confirmButtonText: "Sí, desactivar",
       cancelButtonText: "Cancelar",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        BarberAlert.fire({
-          title: "Servicio eliminado",
-          text: "El servicio fue eliminado correctamente.",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const { error } = await supabase
+          .from('services')
+          .update({ activo: false })
+          .eq('id', service.id);
+
+        if (error) throw error;
+
+        await BarberAlert.fire({
+          title: "Servicio desactivado",
+          text: "El servicio fue desactivado correctamente.",
           icon: "success",
           confirmButtonText: "Entendido",
         });
+
+        // Recargar la lista de servicios
+        loadServices();
+      } catch (error) {
+        console.error('Error al desactivar servicio:', error);
+        BarberAlert.fire({
+          title: "Error",
+          text: "No se pudo desactivar el servicio",
+          icon: "error",
+          confirmButtonText: "Entendido"
+        });
       }
+    }
+  };
+
+  const handleActivate = async (service) => {
+    const result = await BarberAlert.fire({
+      title: "¿Activar servicio?",
+      html: `
+      <p>
+        El servicio <strong>${service.nombre}</strong> será activado
+        y estará disponible para agendar citas.
+      </p>
+    `,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, activar",
+      cancelButtonText: "Cancelar",
     });
+
+    if (result.isConfirmed) {
+      try {
+        const { error } = await supabase
+          .from('services')
+          .update({ activo: true })
+          .eq('id', service.id);
+
+        if (error) throw error;
+
+        await BarberAlert.fire({
+          title: "Servicio activado",
+          text: "El servicio fue activado correctamente.",
+          icon: "success",
+          confirmButtonText: "Entendido",
+        });
+
+        // Recargar la lista de servicios
+        loadServices();
+      } catch (error) {
+        console.error('Error al activar servicio:', error);
+        BarberAlert.fire({
+          title: "Error",
+          text: "No se pudo activar el servicio",
+          icon: "error",
+          confirmButtonText: "Entendido"
+        });
+      }
+    }
   };
 
   return (
@@ -143,29 +209,42 @@ export default function Services() {
           services.map((service) => (
           <div
             key={service.id}
-            className="
+            className={`
               bg-barber-white
               border border-barber-gray/30
               rounded-2xl
               overflow-hidden
               hover:shadow-md
               transition
-            "
+              ${!service.activo ? 'opacity-50 grayscale' : ''}
+            `}
           >
             {/* IMAGE */}
-            <div className="h-36 bg-barber-light flex items-center justify-center">
+            <div className="h-36 bg-barber-light flex items-center justify-center relative">
               <Scissors className="w-10 h-10 text-barber-gray" />
+              {!service.activo && (
+                <div className="absolute top-2 right-2 bg-barber-wine text-white text-xs px-2 py-1 rounded">
+                  Inactivo
+                </div>
+              )}
             </div>
 
             {/* CONTENT */}
             <div className="p-4 sm:p-5 space-y-3">
               <h3 className="text-lg font-semibold text-barber-black">
                 {service.nombre}
+                {!service.activo && <span className="ml-2 text-xs text-barber-wine">(Desactivado)</span>}
               </h3>
 
               <p className="text-sm text-barber-gray">{service.descripcion}</p>
 
               <div className="flex flex-col gap-1 text-sm text-barber-gray">
+                {service.duracion_minutos && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-barber-gold" />
+                    <span>{service.duracion_minutos} min</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-barber-gold" />
                   <span>${service.precio}</span>
@@ -194,22 +273,41 @@ export default function Services() {
                   Editar
                 </button>
 
-                <button
-                  onClick={() => handleDelete(service)}
-                  className="
-                    flex-1 flex items-center justify-center gap-2
-                    border border-barber-wine
-                    text-barber-wine
-                    py-2
-                    rounded-lg
-                    hover:bg-barber-wine
-                    hover:text-white
-                    transition
-                  "
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar
-                </button>
+                {service.activo ? (
+                  <button
+                    onClick={() => handleDelete(service)}
+                    className="
+                      flex-1 flex items-center justify-center gap-2
+                      border border-barber-wine
+                      text-barber-wine
+                      py-2
+                      rounded-lg
+                      hover:bg-barber-wine
+                      hover:text-white
+                      transition
+                    "
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Desactivar
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleActivate(service)}
+                    className="
+                      flex-1 flex items-center justify-center gap-2
+                      border border-barber-gold
+                      text-barber-gold
+                      py-2
+                      rounded-lg
+                      hover:bg-barber-gold
+                      hover:text-barber-black
+                      transition
+                    "
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Activar
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -222,22 +320,24 @@ export default function Services() {
         <ServiceModal
           service={selectedService}
           onClose={() => setOpenModal(false)}
+          onSave={loadServices}
         />
       )}
     </section>
   );
 }
 
-function ServiceModal({ service, onClose }) {
+function ServiceModal({ service, onClose, onSave }) {
   const isEdit = Boolean(service);
 
   const [form, setForm] = useState({
-    name: service?.name || "",
-    description: service?.description || "",
-    duration: service?.duration || "",
-    price: service?.price || "",
+    nombre: service?.nombre || "",
+    descripcion: service?.descripcion || "",
+    duracion_minutos: service?.duracion_minutos || "",
+    precio: service?.precio || "",
     image: null,
   });
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -248,13 +348,13 @@ function ServiceModal({ service, onClose }) {
     });
   };
 
-  const handleSubmit = () => {
-    if (!form.name || !form.duration || !form.price) {
+  const handleSubmit = async () => {
+    if (!form.nombre || !form.precio) {
       BarberAlert.fire({
         title: "Campos obligatorios",
         html: `
       <p class="text-barber-gray">
-        Debes completar <strong>nombre</strong>, <strong>duración</strong>
+        Debes completar <strong>nombre</strong>
         y <strong>precio</strong> para continuar.
       </p>
     `,
@@ -266,16 +366,56 @@ function ServiceModal({ service, onClose }) {
       return;
     }
 
-    BarberAlert.fire({
-      title: isEdit ? "Servicio actualizado" : "Servicio creado",
-      text: isEdit
-        ? "Los cambios se guardaron correctamente."
-        : "El servicio ya está disponible para agendar citas.",
-      icon: "success",
-      confirmButtonText: "Perfecto",
-    });
+    try {
+      setSaving(true);
+      const serviceData = {
+        nombre: form.nombre,
+        descripcion: form.descripcion,
+        duracion_minutos: form.duracion_minutos ? parseInt(form.duracion_minutos) : null,
+        precio: parseFloat(form.precio),
+        activo: true
+      };
 
-    onClose();
+      let error;
+      if (isEdit) {
+        // Actualizar servicio existente
+        const result = await supabase
+          .from('services')
+          .update(serviceData)
+          .eq('id', service.id);
+        error = result.error;
+      } else {
+        // Crear nuevo servicio
+        const result = await supabase
+          .from('services')
+          .insert([serviceData]);
+        error = result.error;
+      }
+
+      if (error) throw error;
+
+      await BarberAlert.fire({
+        title: isEdit ? "Servicio actualizado" : "Servicio creado",
+        text: isEdit
+          ? "Los cambios se guardaron correctamente."
+          : "El servicio ya está disponible para agendar citas.",
+        icon: "success",
+        confirmButtonText: "Perfecto",
+      });
+
+      onSave();
+      onClose();
+    } catch (error) {
+      console.error('Error al guardar servicio:', error);
+      BarberAlert.fire({
+        title: "Error",
+        text: "No se pudo guardar el servicio",
+        icon: "error",
+        confirmButtonText: "Entendido"
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -286,31 +426,34 @@ function ServiceModal({ service, onClose }) {
         </h3>
 
         <input
-          name="name"
-          value={form.name}
+          name="nombre"
+          value={form.nombre}
           onChange={handleChange}
           placeholder="Nombre del servicio *"
           className="input"
+          disabled={saving}
         />
 
         <textarea
-          name="description"
-          value={form.description}
+          name="descripcion"
+          value={form.descripcion}
           onChange={handleChange}
           placeholder="Descripción"
           className="input"
           rows={3}
+          disabled={saving}
         />
 
         <select
-          name="duration"
-          value={form.duration}
+          name="duracion_minutos"
+          value={form.duracion_minutos}
           onChange={handleChange}
           className="input"
+          disabled={saving}
         >
-          <option value="">Duración *</option>
+          <option value="">Duración</option>
           {durationOptions.map((min) => (
-            <option key={min} value={`${min} min`}>
+            <option key={min} value={min}>
               {min} minutos
             </option>
           ))}
@@ -318,29 +461,30 @@ function ServiceModal({ service, onClose }) {
 
         <input
           type="number"
-          name="price"
-          value={form.price}
+          name="precio"
+          value={form.precio}
           onChange={handleChange}
           placeholder="Precio *"
           min={0}
           step={10}
           className="input"
-        />
-
-        <input
-          type="file"
-          accept="image/png, image/jpeg"
-          name="image"
-          onChange={handleChange}
-          className="input"
+          disabled={saving}
         />
 
         <div className="flex flex-col sm:flex-row gap-2 pt-3">
-          <button onClick={onClose} className="btn-secondary w-full">
+          <button 
+            onClick={onClose} 
+            className="btn-secondary w-full"
+            disabled={saving}
+          >
             Cancelar
           </button>
-          <button onClick={handleSubmit} className="btn-primary w-full">
-            Guardar
+          <button 
+            onClick={handleSubmit} 
+            className="btn-primary w-full"
+            disabled={saving}
+          >
+            {saving ? 'Guardando...' : 'Guardar'}
           </button>
         </div>
       </div>
