@@ -150,7 +150,7 @@ export default function Login() {
     ].map((img, i) => (
       <img
         key={i}
-        src={`/public/${img}`}
+        src={`/${img}`}
         className="
           w-full
           h-full
@@ -195,7 +195,7 @@ export default function Login() {
         {/* LOGO / TITLE */}
         <div className="mb-10 text-center">
           <img
-            src="/public/Barberlogo1.png"
+            src="/Barberlogo1.PNG"
             alt="Barber Logo"
             className="
               h-24
