@@ -431,6 +431,11 @@ export default function Schedule() {
           return false;
         }
 
+        if (!/^\d{10}$/.test(phone)) {
+          Swal.showValidationMessage("El teléfono debe tener exactamente 10 dígitos");
+          return false;
+        }
+
         if (password.length < 6) {
           Swal.showValidationMessage("La contraseña debe tener al menos 6 caracteres");
           return false;
